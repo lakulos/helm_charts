@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ .Values.rollout.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.rollout.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.rollout.label.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.rollout.label.name }}
+    spec:
+      containers:
+        {{- range .Values.rollout.container }}
+        - name: {{  .name }}
+          image: {{ .image }}:{{ .tag }}
+          {{- if .env }}
+          env:
+            {{- range .env}}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+  strategy:
+    canary:
+      canaryService: {{ .Values.service.canary.name }}
+      stableService: {{ .Values.service.stable.name }}
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute:  {{ .Values.route.name }}
+            namespace: {{ .Release.Namespace }}
+      steps:
+        - setWeight: 30
+        - pause: {}
+        - setWeight: 40
+        - pause: 
+            duration: 20s
+        - setWeight: 60
+        - pause:
+            duration: 20s
+        - setWeight: 80
+        - pause:
+            duration: 20s

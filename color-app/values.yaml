@@ -1,0 +1,37 @@
+gateway:
+  name: app-gateway
+  listeners:
+    - name: http
+      protocol: HTTP
+      hostname: "color.localhost"
+      port: 80
+
+route:
+  name: gateway-route
+  hostnames:
+    - "color.localhost"
+
+rollout:
+  name: color-app
+  replicas: 5
+  label:
+    name: rollout-gateway
+  container:
+    - name: my-color-app
+      image: lmacademy/simple-color-app
+      tag: 1.0.0
+      env:
+        - name: APP_COLOR
+          value: "blue"
+
+service:
+  stable:
+    name: rollout-gateway-stable
+    type: NodePort
+    port: 3000
+    targetport: 3000
+  canary:
+    name: rollout-gateway-canary
+    type: NodePort
+    port: 3000
+    targetport: 3000
